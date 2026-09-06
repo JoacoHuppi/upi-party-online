@@ -1,0 +1,8 @@
+{
+  "name": "upi-party-private-rooms",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "start": "node online-server.mjs" },
+  "engines": { "node": "24.x" }
+}

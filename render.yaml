@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: upi-party
+    runtime: node
+    plan: free
+    buildCommand: node --check online-server.mjs
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeployTrigger: off
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
