@@ -1,11 +1,11 @@
 {
-  "version": "0.2.1",
-  "notes": "Actualización UPI Party 0.2.1",
-  "pub_date": "2026-09-06T22:22:11.648Z",
+  "version": "0.2.2",
+  "notes": "Actualización UPI Party 0.2.2",
+  "pub_date": "2026-09-06T23:12:54.737Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTYUo5QWNMNkhuc1F5bFcwMkQ2OTdiNkRwblBTQ0p3QitiUzJ5bDcrK05sdjhSZzlpSDJJR01ZNnFscGJab1hhaFNiRWlyeFY2ZGpTK1djTW1yY1lJbXNyQVVyL1FhMVFBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg4NzMzMzE1CWZpbGU6VVBJIFBhcnR5XzAuMi4xX3g2NC1zZXR1cC5leGUKVUxHYkgza2F3OGU1cktvVE4wdm9naVMxT09NUE9IYlIxOGNOKzhQc2lQYXc0SzA2cWM3VXNod0V0ZldUMGYydDZUblVxWUZSYkpZRVpQV2ZkdUNNQUE9PQo=",
-      "url": "https://github.com/JoacoHuppi/upi-party-online/releases/download/v0.2.1/UPI-Party-0.2.1-x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTYUo5QWNMNkhuc1M5OXhEVkNJZmFHejlmcVhnSEpNcXcxMEFmZEFOZzNZcEpyYjduMlN3T29JL200cjNEYjdZUXlGazhXeUQyMmx3RzlrY0ZLTm5MUVBJcWV4bThBSlFRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg4NzM2MDAxCWZpbGU6VVBJIFBhcnR5XzAuMi4yX3g2NC1zZXR1cC5leGUKOW9UOTUxb0V3UnZONG1qM1Q4ZmlXVlFFSTFESjJYS0g3Z2g0L1c5M2R5TWxad3VMS0c0MXFEU0YrRldHSC83TGFOUnhrd3FpelRCT1ovU2I4c2hmQXc9PQo=",
+      "url": "https://github.com/JoacoHuppi/upi-party-online/releases/download/v0.2.2/UPI-Party-0.2.2-x64-setup.exe"
     }
   }
 }
