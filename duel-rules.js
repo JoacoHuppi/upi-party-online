@@ -58,13 +58,13 @@ function createTimedChoiceDuel(version,players,seed,{lanes,duration=30000,label}
  const random=seededRandom(seed),state=new Map(players.map(id=>[id,{id,points:0,misses:0,blockedUntil:0,index:0,hits:0,mean:0,shownAt:0}]));
  let elapsed=0,phase='active',winner=null,targetIndex=0;
  const nextLane=()=>Math.floor(random()*lanes);
- const targets=new Map(players.map(id=>[id,{index:0,lane:nextLane()}]));
- function snapshot(){return {rules:version,phase,winner,reason:phase==='over'?'score':null,remaining:Math.max(0,duration-elapsed),targets:players.map(id=>({...targets.get(id),id,blocked:Math.max(0,(state.get(id).blockedUntil||0)-elapsed)})),scores:players.map(id=>{const p=state.get(id);return {id,points:p.points,misses:p.misses,hits:p.hits,meanReaction:p.hits?Math.round(p.mean/p.hits):0};})};}
+ const targets=new Map(players.map(id=>{const queue=Array.from({length:5},nextLane);return [id,{index:0,lane:queue[0],queue}];}));
+ function snapshot(){return {rules:version,phase,winner,reason:phase==='over'?'score':null,remaining:Math.max(0,duration-elapsed),targets:players.map(id=>{const target=targets.get(id);return {...target,id,preview:version==='racket-duel-v1'?[...target.queue]:undefined,blocked:Math.max(0,(state.get(id).blockedUntil||0)-elapsed)};}),scores:players.map(id=>{const p=state.get(id);return {id,points:p.points,misses:p.misses,hits:p.hits,meanReaction:p.hits?Math.round(p.mean/p.hits):0};})};}
  function advance(now){if(!Number.isFinite(now)||now<elapsed)return snapshot();elapsed=now;if(phase==='active'&&elapsed>=duration){phase='over';const a=state.get(players[0]),b=state.get(players[1]);winner=a.points===b.points?null:a.points>b.points?players[0]:players[1];}return snapshot();}
  function choose(player,input,now){
   if(!Number.isFinite(now)||now<elapsed||phase!=='active')return {accepted:false};advance(now);const p=state.get(player),t=targets.get(player);
   if(!p||!t||!input||input.index!==t.index||!Number.isInteger(input.lane)||input.lane<0||input.lane>=lanes||elapsed<p.blockedUntil)return {accepted:false};
-  const correct=input.lane===t.lane;t.index++;t.lane=nextLane();targetIndex++;
+  const correct=input.lane===t.queue[0];t.index++;t.queue.shift();t.queue.push(nextLane());t.lane=t.queue[0];targetIndex++;
   if(correct){p.hits++;p.points+=100;p.mean+=Math.max(0,elapsed-p.shownAt);p.shownAt=elapsed;}
   else{p.misses++;p.blockedUntil=elapsed+500;}
   return {accepted:true,correct,...snapshot()};
