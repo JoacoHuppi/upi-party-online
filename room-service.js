@@ -34,9 +34,14 @@ export function createRoomService({now=()=>performance.now(),seed=()=>randomByte
   const {r,p}=resolve(token);if(!msg||typeof msg.actionId!=='string'||msg.actionId.length<8||msg.actionId.length>80)fail('Acción inválida.');
   if(p.actions.has(msg.actionId))return {duplicate:true,state:packet(r,p)};
   if(msg.matchId!==r.matchId)fail('La partida cambió. Esperá la actualización.',409);
-  if(!['ready','press','pick','hit','leave','move','lobby'].includes(msg.type))fail('Acción desconocida.');
+  if(!['ready','press','pick','hit','leave','move','lobby','practice'].includes(msg.type))fail('Acción desconocida.');
   p.actions.add(msg.actionId);if(p.actions.size>150)p.actions.delete(p.actions.values().next().value);r.updatedAt=now();
   if(msg.type==='leave'){leave(r,p);return {left:true};}
+  if(msg.type==='practice'){
+   if(!r.party||r.phase!=='lobby'||![null,'racket','arrows'].includes(msg.cell))return {accepted:false,state:packet(r,p)};
+   p.practice=msg.cell;p.pose={x:msg.cell==='racket'?-10:msg.cell==='arrows'?10:0,y:0,z:msg.cell?-16:2.1,yaw:0};publish(r);return {accepted:true,state:packet(r,p)};
+  }
+  if(msg.type==='move'&&p.practice)return {accepted:false,state:packet(r,p)};
   if(msg.type==='move'){if(!r.party||!['lobby','countdown'].includes(r.phase)||!validPose(msg.cell))return {accepted:false,state:packet(r,p)};if(now()-p.poseAt<50)return {accepted:false,state:packet(r,p)};p.pose={x:msg.cell.x,y:msg.cell.y,z:msg.cell.z,yaw:msg.cell.yaw};p.poseAt=now();gate(r);publish(r);return {accepted:true,state:packet(r,p)};}
   if(msg.type==='lobby'){if(!r.party||r.phase!=='result')return {accepted:false,state:packet(r,p)};removeSoloBot(r);r.phase='lobby';r.mode=null;r.engine=null;r.result=null;r.matchId=randomUUID();r.players.forEach((x,i)=>{x.ready=false;x.pose={x:i*1.2,y:0,z:2.1,yaw:0};x.actions.clear();});publish(r);return {accepted:true,state:packet(r,p)};}
   if(msg.type==='ready'){
