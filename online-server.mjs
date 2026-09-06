@@ -11,8 +11,8 @@ export async function startOnlineServer({port=8787,host='127.0.0.1',allowedOrigi
  async function body(req){let size=0,parts=[];for await(const part of req){size+=part.length;if(size>4096)throw Object.assign(new Error('Petición demasiado grande.'),{status:413});parts.push(part);}try{return JSON.parse(Buffer.concat(parts).toString('utf8'));}catch{throw Object.assign(new Error('JSON inválido.'),{status:400});}}
  const server=http.createServer(async(req,res)=>{
   res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','no-referrer');
-  const origin=req.headers.origin,localOrigins=[`http://127.0.0.1:${server.address()?.port}`,`http://localhost:${server.address()?.port}`];
-  if(origin&&!['null',...localOrigins,...allowedOrigins].includes(origin)){json(res,403,{error:'Origen no permitido.'});return;}
+  const origin=req.headers.origin,localOrigins=[`http://127.0.0.1:${server.address()?.port}`,`http://localhost:${server.address()?.port}`],desktopOrigin=origin==='tauri://localhost'||origin==='http://tauri.localhost'||origin==='https://tauri.localhost';
+  if(origin&&!['null',...localOrigins,...allowedOrigins].includes(origin)&&!desktopOrigin){json(res,403,{error:'Origen no permitido.'});return;}
   if(origin){res.setHeader('Access-Control-Allow-Origin',origin);res.setHeader('Vary','Origin');res.setHeader('Access-Control-Allow-Headers','Authorization, Content-Type');res.setHeader('Access-Control-Allow-Methods','GET, POST, OPTIONS');}
   if(req.method==='OPTIONS'){res.writeHead(204);res.end();return;}
   const path=new URL(req.url,'http://localhost').pathname,token=(req.headers.authorization||'').replace(/^Bearer /,'');
