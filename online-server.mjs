@@ -46,8 +46,6 @@ export async function startOnlineServer({port=8787,host='127.0.0.1',allowedOrigi
  return {url:`http://${host}:${server.address().port}`,service,async close(){clearInterval(tick);clearInterval(clean);service.close();for(const res of streams)res.end();server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}};
 }
 if(process.argv[1]&&pathToFileURL(fileURLToPath(import.meta.url)).href===pathToFileURL(process.argv[1]).href){
- // Render necesita que el proceso escuche en todas las interfaces de red.
- // En local se puede sobrescribir con HOST=127.0.0.1 si se desea limitarlo.
  const instance=await startOnlineServer({port:Number(process.env.PORT||8787),host:process.env.HOST||'0.0.0.0',allowedOrigins:[process.env.RENDER_EXTERNAL_URL,...(process.env.ALLOWED_ORIGINS||'').split(',')].filter(Boolean)});
  console.log('UPI Party room server:',instance.url);console.log('Solo pruebas locales por defecto. Sin publicación en Internet ni persistencia de salas.');
  for(const signal of ['SIGINT','SIGTERM'])process.once(signal,async()=>{await instance.close();process.exit(0);});
