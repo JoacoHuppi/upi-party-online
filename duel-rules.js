@@ -1,4 +1,4 @@
-// SERVER-SIDE foundations, not connected to the shipped HTML yet.
+// Server-authoritative engines used by room-service and the shipped online client.
 // The transport must bind authenticated connections to player ids and supply
 // server timestamps. Never trust client-provided ids, clock values or winners.
 import {seededRandom} from './aim-rules.js';
