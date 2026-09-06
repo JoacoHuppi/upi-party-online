@@ -1,6 +1,6 @@
 export const PARTY_PORTALS=Object.freeze([
- {id:'racket',x:-6,z:0,label:'Pelotas & cestas',enabled:false},
- {id:'arrows',x:6,z:0,label:'Dance Reflex',enabled:false},
+ {id:'racket',x:-6,z:0,label:'Pelotas & cestas',enabled:true},
+ {id:'arrows',x:6,z:0,label:'Dance Reflex',enabled:true},
  {id:'aim',x:0,z:6,label:'Aim Trainer',enabled:true},
  {id:'sequence',x:-5,z:-5,label:'Sequence Memory',enabled:true},
  {id:'odd',x:5,z:-5,label:'Odd One Out',enabled:true},

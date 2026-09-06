@@ -21,29 +21,59 @@ export function createSequenceDuel(seed,playerIds){
 }
 
 export function createFakeoutDuel(seed,playerIds){
- const players=validatePlayers(playerIds),random=seededRandom(seed),readyPlayers=new Set(),lastIds=new Map(players.map(p=>[p,0]));
- let phase='waiting',cue='wait',cueAt=0,lastAt=0,nextAt=Infinity,fakesLeft=0,winner=null,loser=null,reason=null;
- const wait=()=>1000+Math.floor(random()*2000);
- function snapshot(){return {rules:'fakeout-duel-v1',phase,cue,cueAt,winner,loser,reason,ready:players.filter(p=>readyPlayers.has(p))};}
- function finish(win,why){winner=win;loser=win?players.find(p=>p!==win):null;phase='over';reason=why;cue='over';}
+ const players=validatePlayers(playerIds),random=seededRandom(seed),readyPlayers=new Set(),lastIds=new Map(players.map(p=>[p,0])),scores=new Map(players.map(p=>[p,0]));
+ let phase='waiting',cue='wait',cueAt=0,lastAt=0,nextAt=Infinity,fakesLeft=0,winner=null,loser=null,reason=null,round=1,roundWinner=null;
+ const roundsToWin=3,wait=()=>1000+Math.floor(random()*2000);
+ function snapshot(){return {rules:'fakeout-duel-v2',phase,cue,cueAt,winner,loser,reason,round,roundsToWin,roundWinner,scores:players.map(id=>({id,points:scores.get(id)||0})),ready:players.filter(p=>readyPlayers.has(p))};}
+ function finishRound(win,why){
+  roundWinner=win;reason=why;
+  if(win)scores.set(win,(scores.get(win)||0)+1);
+  const leader=players.find(p=>(scores.get(p)||0)>=roundsToWin);
+  if(leader){winner=leader;loser=players.find(p=>p!==leader);phase='over';cue='over';return;}
+  round++;phase='between';cue='wait';nextAt=lastAt+1200;
+ }
  function ready(player,now){
   if(phase!=='waiting'||!players.includes(player)||!Number.isFinite(now)||now<lastAt)return false;
   lastAt=now;readyPlayers.add(player);if(readyPlayers.size===2){phase='active';cueAt=now;fakesLeft=Math.floor(random()*3);nextAt=now+wait();}return true;
  }
  function advance(now){
   if(!Number.isFinite(now)||now<lastAt)return snapshot();lastAt=now;
+  if(phase==='between'&&now>=nextAt){phase='active';cue='wait';cueAt=now;fakesLeft=Math.floor(random()*3);nextAt=now+wait();}
   if(phase!=='active'||now<nextAt)return snapshot();
-  // A slow tick publishes each cue, never skips straight past a false signal.
   if(cue==='wait'){cue=fakesLeft>0?'fake':'go';if(fakesLeft>0)fakesLeft--;cueAt=now;nextAt=now+(cue==='fake'?450:3000);}
   else if(cue==='fake'){cue='wait';cueAt=now;nextAt=now+wait();}
-  else if(cue==='go')finish(null,'no-response');
+  else if(cue==='go')finishRound(null,'no-response');
   return snapshot();
  }
  function press({player,id,receivedAt}){
   if(phase!=='active'||!players.includes(player)||!Number.isSafeInteger(id)||id!==lastIds.get(player)+1||!Number.isFinite(receivedAt)||receivedAt<lastAt)return {accepted:false};
   advance(receivedAt);if(phase!=='active')return {accepted:false};lastIds.set(player,id);
-  finish(cue==='go'?player:players.find(p=>p!==player),cue==='go'?'reaction':'false-start');
+  finishRound(cue==='go'?player:players.find(p=>p!==player),cue==='go'?'reaction':'false-start');
   return {accepted:true,...snapshot()};
  }
  return Object.freeze({ready,advance,press,snapshot});
 }
+
+function createTimedChoiceDuel(version,players,seed,{lanes,duration=30000,label}){
+ const random=seededRandom(seed),state=new Map(players.map(id=>[id,{id,points:0,misses:0,blockedUntil:0,index:0,hits:0,mean:0,shownAt:0}]));
+ let elapsed=0,phase='active',winner=null,targetIndex=0;
+ const nextLane=()=>Math.floor(random()*lanes);
+ const targets=new Map(players.map(id=>[id,{index:0,lane:nextLane()}]));
+ function snapshot(){return {rules:version,phase,winner,reason:phase==='over'?'score':null,remaining:Math.max(0,duration-elapsed),targets:players.map(id=>({...targets.get(id),id,blocked:Math.max(0,(state.get(id).blockedUntil||0)-elapsed)})),scores:players.map(id=>{const p=state.get(id);return {id,points:p.points,misses:p.misses,hits:p.hits,meanReaction:p.hits?Math.round(p.mean/p.hits):0};})};}
+ function advance(now){if(!Number.isFinite(now)||now<elapsed)return snapshot();elapsed=now;if(phase==='active'&&elapsed>=duration){phase='over';const a=state.get(players[0]),b=state.get(players[1]);winner=a.points===b.points?null:a.points>b.points?players[0]:players[1];}return snapshot();}
+ function choose(player,input,now){
+  if(!Number.isFinite(now)||now<elapsed||phase!=='active')return {accepted:false};advance(now);const p=state.get(player),t=targets.get(player);
+  if(!p||!t||!input||input.index!==t.index||!Number.isInteger(input.lane)||input.lane<0||input.lane>=lanes||elapsed<p.blockedUntil)return {accepted:false};
+  const correct=input.lane===t.lane;t.index++;t.lane=nextLane();targetIndex++;
+  if(correct){p.hits++;p.points+=100;p.mean+=Math.max(0,elapsed-p.shownAt);p.shownAt=elapsed;}
+  else{p.misses++;p.blockedUntil=elapsed+500;}
+  return {accepted:true,correct,...snapshot()};
+ }
+ function miss(player,input,now){
+  if(!Number.isFinite(now)||now<elapsed||phase!=='active')return {accepted:false};advance(now);const p=state.get(player),t=targets.get(player);if(!p||!t||!input||input.index!==t.index||elapsed<p.blockedUntil)return {accepted:false};p.misses++;p.blockedUntil=elapsed+500;t.index++;t.lane=nextLane();return {accepted:true,correct:false,...snapshot()};
+ }
+ return {advance,snapshot,choose,miss};
+}
+
+export function createRacketDuel(seed,players){return createTimedChoiceDuel('racket-duel-v1',players,seed,{lanes:2,label:'racket'});}
+export function createArrowDuel(seed,players){return createTimedChoiceDuel('arrows-duel-v1',players,seed,{lanes:4,label:'arrows'});}
