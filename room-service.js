@@ -1,6 +1,6 @@
 import {randomBytes,randomUUID} from 'node:crypto';
-import {createSequenceDuel,createFakeoutDuel,createRacketDuel,createArrowDuel} from './duel-rules.js';
-import {PARTY_PORTALS,portalAt,validPose} from './party-rules.js';
+import {createSequenceDuel,createFakeoutDuel} from './duel-rules.js';
+import {ONLINE_PORTALS,onlinePortalAt,validPose} from './party-rules.js';
 import {createSharedDuel} from './shared-duel.js';
 
 export function createRoomService({now=()=>performance.now(),seed=()=>randomBytes(4).readUInt32LE(),graceMs=10000,countdownMs=3000}={}){
@@ -8,7 +8,7 @@ export function createRoomService({now=()=>performance.now(),seed=()=>randomByte
  const fail=(message,status=400)=>{throw Object.assign(new Error(message),{status});};
  const newPlayer=(name,character,bot=false)=>({id:randomUUID(),token:randomBytes(32).toString('hex'),bot,character:['male-a','female-a','male-e','female-e'].includes(character)?character:'male-a',name:typeof name==='string'?(name.trim().slice(0,20)||'Jugador'):'Jugador',ready:false,streams:new Set(),offlineAt:now(),wins:0,actions:new Set(),pose:{x:0,y:0,z:2.1,yaw:0},poseAt:-Infinity});
  function sessionPacket(r){return [...r.session].map(([id,v])=>({id,points:v.points,games:v.games,wins:v.wins}));}
- function packet(r,p){return {protocol:1,party:r.party,code:r.code,mode:r.mode,phase:r.phase,matchId:r.matchId,revision:r.revision,selfId:p.id,countdown:Math.max(0,r.startsAt-now()),game:r.engine?.snapshot()??null,result:r.result,session:sessionPacket(r),portals:r.party?PARTY_PORTALS.map(zone=>({...zone,count:r.players.filter(x=>(x.bot||x.streams.size)&&portalAt(x.pose)===zone.id).length})):null,players:r.players.map(x=>({id:x.id,name:x.name,character:x.character,ready:x.ready,connected:x.bot||x.streams.size>0,wins:x.wins,pose:r.party?{...x.pose}:null,grace:x.bot?null:!x.streams.size?Math.max(0,graceMs-(now()-x.offlineAt)):null}))};}
+ function packet(r,p){return {protocol:1,party:r.party,code:r.code,mode:r.mode,phase:r.phase,matchId:r.matchId,revision:r.revision,selfId:p.id,countdown:Math.max(0,r.startsAt-now()),game:r.engine?.snapshot()??null,result:r.result,session:sessionPacket(r),portals:r.party?ONLINE_PORTALS.map(zone=>({...zone,count:r.players.filter(x=>(x.bot||x.streams.size)&&onlinePortalAt(x.pose)===zone.id).length})):null,players:r.players.map(x=>({id:x.id,name:x.name,character:x.character,ready:x.ready,connected:x.bot||x.streams.size>0,wins:x.wins,pose:r.party?{...x.pose}:null,grace:x.bot?null:!x.streams.size?Math.max(0,graceMs-(now()-x.offlineAt)):null}))};}
  function publish(r){r.revision++;for(const p of r.players)for(const send of [...p.streams]){try{send(packet(r,p));}catch{p.streams.delete(send);if(!p.streams.size)p.offlineAt=now();}}}
  function credentials(r,p){return {code:r.code,token:p.token,state:packet(r,p)};}
  function resolve(token){const found=tokens.get(token);if(!found||!rooms.has(found.r.code))fail('Sesión vencida. Volvé a entrar.',401);return found;}
@@ -23,7 +23,7 @@ export function createRoomService({now=()=>performance.now(),seed=()=>randomByte
  function begin(r){r.matchId=randomUUID();r.phase='countdown';r.startsAt=now()+countdownMs;r.result=null;r.engine=null;r.botAt=0;r.botPressId=0;r.players.forEach(p=>{p.ready=false;p.actions.clear();});publish(r);}
  function addSoloBot(r){if(r.botId)return;const human=r.players.find(p=>!p.bot),bot=newPlayer('Bot','male-a',true);bot.pose={x:human?.pose.x>0?-human.pose.x:1.2,y:0,z:human?.pose.z??2.1,yaw:Math.PI};r.players.push(bot);r.botId=bot.id;r.session.set(bot.id,{points:0,games:0,wins:0});}
  function removeSoloBot(r){if(!r.botId)return;const bot=r.players.find(p=>p.id===r.botId);if(bot){tokens.delete(bot.token);r.players=r.players.filter(p=>p!==bot);r.session.delete(bot.id);}r.botId=null;}
- function gate(r){if(!r.party||!['lobby','countdown'].includes(r.phase))return;const humans=r.players.filter(p=>!p.bot),zone=portalAt(humans[0]?.pose),together=humans.length===2&&humans.every(p=>p.streams.size&&portalAt(p.pose)===zone)&&PARTY_PORTALS.some(p=>p.id===zone&&p.enabled),solo=humans.length===1&&humans[0].streams.size&&PARTY_PORTALS.some(p=>p.id===zone&&p.enabled);if(r.phase==='countdown'&&(!together&&!solo||zone!==r.mode)){r.phase='lobby';r.mode=null;r.startsAt=0;removeSoloBot(r);publish(r);}else if(r.phase==='lobby'&&(together||solo)){if(solo)addSoloBot(r);r.mode=zone;begin(r);}}
+ function gate(r){if(!r.party||!['lobby','countdown'].includes(r.phase))return;const humans=r.players.filter(p=>!p.bot),zone=onlinePortalAt(humans[0]?.pose),together=humans.length===2&&humans.every(p=>p.streams.size&&onlinePortalAt(p.pose)===zone)&&ONLINE_PORTALS.some(p=>p.id===zone&&p.enabled),solo=humans.length===1&&humans[0].streams.size&&ONLINE_PORTALS.some(p=>p.id===zone&&p.enabled);if(r.phase==='countdown'&&(!together&&!solo||zone!==r.mode)){r.phase='lobby';r.mode=null;r.startsAt=0;removeSoloBot(r);publish(r);}else if(r.phase==='lobby'&&(together||solo)){if(solo)addSoloBot(r);r.mode=zone;begin(r);}}
  function leave(r,p){
   if(['countdown','playing'].includes(r.phase))finish(r,r.players.find(x=>x!==p)?.id??null,'left');
   tokens.delete(p.token);for(const send of p.streams){try{send({closed:true,reason:'left'});}catch{}}p.streams.clear();r.players=r.players.filter(x=>x!==p);
@@ -49,7 +49,6 @@ export function createRoomService({now=()=>performance.now(),seed=()=>randomByte
   if(r.mode==='fakeout'&&msg.type==='press')outcome=r.engine.press({player:p.id,id:1,receivedAt:elapsed});
   else if(r.mode==='sequence'&&msg.type==='pick')outcome=r.engine.pick({player:p.id,cell:msg.cell,elapsed,id:s.eventId+1});
   else if(['aim','odd'].includes(r.mode)&&msg.type==='pick')outcome=r.engine.choose(p.id,msg.cell,elapsed);
-  else if(['racket','arrows'].includes(r.mode)&&msg.type==='hit')outcome=r.engine.choose(p.id,{index:msg.cell?.index,lane:msg.cell?.lane},elapsed);
   else fail('Acción incorrecta para este juego.');
   const after=r.engine.snapshot();if(after.phase==='over')finish(r,after.winner,after.reason);else publish(r);
   return {accepted:outcome.accepted,state:packet(r,p)};
@@ -63,7 +62,6 @@ export function createRoomService({now=()=>performance.now(),seed=()=>randomByte
   }else if(r.mode==='sequence'&&s.phase==='input'&&s.turn===bot.id){outcome=r.engine.pick({player:bot.id,cell:Math.floor(Math.random()*6),elapsed,id:s.eventId+1});r.botAt=elapsed+260;}
   else if(r.mode==='aim'&&s.target){outcome=r.engine.choose(bot.id,{x:s.target.x,y:s.target.y},elapsed);r.botAt=elapsed+90;}
   else if(r.mode==='odd'&&s.board){outcome=r.engine.choose(bot.id,{cell:s.board.odd},elapsed);r.botAt=elapsed+90;}
-  else if(['racket','arrows'].includes(r.mode)){const target=s.targets?.find(t=>t.id===bot.id);if(target){outcome=r.engine.choose(bot.id,{index:target.index,lane:target.lane},elapsed);r.botAt=elapsed+90;}}
   return outcome;
  }
  function tick(){
@@ -76,7 +74,7 @@ export function createRoomService({now=()=>performance.now(),seed=()=>randomByte
    }
    if(r.phase==='countdown'&&now()>=r.startsAt){
     r.startsAt=now();r.phase='playing';const ids=r.players.map(p=>p.id);if(r.first++%2)ids.reverse();
-    r.engine=r.mode==='sequence'?createSequenceDuel(seed(),ids):['aim','odd'].includes(r.mode)?createSharedDuel(r.mode,seed(),ids):r.mode==='racket'?createRacketDuel(seed(),ids):r.mode==='arrows'?createArrowDuel(seed(),ids):createFakeoutDuel(seed(),ids);
+    r.engine=r.mode==='sequence'?createSequenceDuel(seed(),ids):['aim','odd'].includes(r.mode)?createSharedDuel(r.mode,seed(),ids):createFakeoutDuel(seed(),ids);
     if(r.mode==='fakeout')ids.forEach(id=>r.engine.ready(id,0));publish(r);
    }else if(r.phase==='playing'){
     const elapsed=now()-r.startsAt,s=r.engine.advance(elapsed);if(s.phase==='over')finish(r,s.winner,s.reason);else{botStep(r,elapsed);const after=r.engine.snapshot();if(after.phase==='over')finish(r,after.winner,after.reason);else publish(r);}
