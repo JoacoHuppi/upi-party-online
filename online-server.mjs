@@ -7,7 +7,7 @@ import {createRoomService} from './room-service.js';
 export async function startOnlineServer({port=8787,host='127.0.0.1',allowedOrigins=[],serviceOptions={}}={}){
  const gameHTML=await readFile(new URL('./UPI-Party-3D.html',import.meta.url));
  const networkClient=await readFile(new URL('./network-client.js',import.meta.url));
- const service=createRoomService(serviceOptions),limits=new Map(),streams=new Set(),sockets=new Set();
+ const service=createRoomService(serviceOptions),receivedNow=typeof serviceOptions.now==='function'?serviceOptions.now:()=>performance.now(),limits=new Map(),streams=new Set(),sockets=new Set();
  const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8'});res.end(JSON.stringify(data));};
  function rate(key,max,windowMs){const t=Date.now(),entry=limits.get(key);if(!entry||t-entry.at>windowMs){limits.set(key,{at:t,n:1});return true;}return ++entry.n<=max;}
  async function body(req){let size=0,parts=[];for await(const part of req){size+=part.length;if(size>4096)throw Object.assign(new Error('Petición demasiado grande.'),{status:413});parts.push(part);}try{return JSON.parse(Buffer.concat(parts).toString('utf8'));}catch{throw Object.assign(new Error('JSON inválido.'),{status:400});}}
@@ -42,7 +42,7 @@ export async function startOnlineServer({port=8787,host='127.0.0.1',allowedOrigi
    }
    if(req.method==='POST'&&path==='/api/action'){
     if(!rate('token:'+token,100,1000)){json(res,429,{error:'Entradas demasiado rápidas.'});return;}
-    json(res,200,service.action(token,await body(req),{receivedAt:performance.now()}));return;
+    json(res,200,service.action(token,await body(req),{receivedAt:receivedNow()}));return;
    }
    json(res,404,{error:'Ruta no encontrada.'});
   }catch(e){if(!res.headersSent)json(res,e.status||400,{error:e.message||'Petición inválida.'});else res.end();}
@@ -87,7 +87,7 @@ export async function startOnlineServer({port=8787,host='127.0.0.1',allowedOrigi
     }
     if(message.type!=='action'||!message.action||typeof message.action!=='object')throw new Error('Mensaje WebSocket desconocido.');
     if(!rate('ws-token:'+token,100,1000))throw Object.assign(new Error('Entradas demasiado rápidas.'),{status:429});
-    const result=service.action(token,message.action,{receivedAt:performance.now(),rtt:ws.rtt});
+    const result=service.action(token,message.action,{receivedAt:receivedNow(),rtt:ws.rtt});
     if(typeof message.requestId==='string')send(ws,{type:'ack',requestId:message.requestId,result});
    }catch(error){
     send(ws,{type:'error',requestId:typeof message.requestId==='string'?message.requestId:undefined,status:error.status||400,error:error.message||'Mensaje inválido.'});

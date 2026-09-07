@@ -15,7 +15,10 @@ export function createSharedDuel(mode,seed,players,{duration=30000}={}){
   let hit;if(mode==='aim'){if(![input.x,input.y].every(Number.isFinite)||input.x<0||input.x>1||input.y<0||input.y>1)return {accepted:false};hit=Math.hypot(input.x-current.x,input.y-current.y)<=current.radius;}
   else{if(!Number.isInteger(input.cell)||input.cell<0||input.cell>=20)return {accepted:false};hit=input.cell===current.odd;}
   if(hit){
-   p.points++;lastHit={player,index:current.index};const s=engine.snapshot();
+   p.points++;lastHit=mode==='aim'
+    ?{player,index:current.index,x:current.x,y:current.y}
+    :{player,index:current.index,cell:current.odd};
+   const s=engine.snapshot();
    if(mode==='aim')engine.shoot({seq:s.sequence+1,targetIndex:current.index,x:current.x,y:current.y,elapsed});
    else engine.choose({seq:s.sequence+1,boardIndex:current.index,cell:current.odd,elapsed});
    opensAt=elapsed+250;

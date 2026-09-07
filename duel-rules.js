@@ -6,15 +6,15 @@ import {createSequenceRound} from './sequence-rules.js';
 function validatePlayers(players){if(!Array.isArray(players)||players.length!==2||players.some(p=>typeof p!=='string'||!p)||players[0]===players[1])throw new Error('Two distinct player ids required');return [...players];}
 
 export function createSequenceDuel(seed,playerIds){
- const players=validatePlayers(playerIds),engine=createSequenceRound(seed);let turn=0,winner=null,loser=null,lastAt=0;
+ const players=validatePlayers(playerIds),engine=createSequenceRound(seed);let turn=0,winner=null,loser=null,lastAt=0,lastPick=null;
  function settle(){if(engine.snapshot().phase==='over'&&!winner){loser=players[turn];winner=players[1-turn];}}
  function advance(elapsed){if(!Number.isFinite(elapsed)||elapsed<lastAt)return snapshot();lastAt=elapsed;engine.advance(elapsed);settle();return snapshot();}
  // Only the lit cue is public: do not transmit hidden sequence or the seed.
- function snapshot(){const s=engine.snapshot();return {rules:'sequence-duel-v1',phase:s.phase,turn:players[turn],winner,loser,level:s.sequence.length,lit:s.lit,cursor:s.cursor,completed:s.completed,eventId:s.eventId,remaining:s.remaining,reason:s.reason};}
+ function snapshot(){const s=engine.snapshot();return {rules:'sequence-duel-v1',phase:s.phase,turn:players[turn],winner,loser,level:s.sequence.length,lit:s.lit,cursor:s.cursor,completed:s.completed,eventId:s.eventId,remaining:s.remaining,reason:s.reason,lastPick};}
  function pick({player,cell,elapsed,id}){
   if(winner||player!==players[turn]||!Number.isFinite(elapsed)||elapsed<lastAt)return {accepted:false};
   advance(elapsed);if(winner)return {accepted:false,...snapshot()};
-  const r=engine.pick({id,cell,elapsed});if(!r.accepted)return {accepted:false};
+  const r=engine.pick({id,cell,elapsed});if(!r.accepted)return {accepted:false};lastPick={player,cell,eventId:r.eventId,correct:r.correct};
   if(r.phase==='cleared')turn=1-turn;settle();return {accepted:true,...snapshot()};
  }
  return Object.freeze({advance,pick,snapshot});
