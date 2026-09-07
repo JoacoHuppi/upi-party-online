@@ -3,6 +3,13 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
-  "scripts": { "start": "node online-server.mjs" },
-  "engines": { "node": "24.x" }
+  "packageManager": "pnpm@11.19.0",
+  "scripts": {
+    "start": "node online-server.mjs",
+    "test": "node --test"
+  },
+  "engines": { "node": "24.x" },
+  "dependencies": {
+    "ws": "^8.18.3"
+  }
 }

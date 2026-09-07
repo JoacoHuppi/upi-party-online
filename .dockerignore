@@ -1,0 +1,7 @@
+.git
+.github
+node_modules
+release
+*.exe
+*.sig
+RELEASE-*.md
