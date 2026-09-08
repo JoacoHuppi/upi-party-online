@@ -7,6 +7,8 @@ import {findItem} from './cosmetics-data.js';
 // Modos Pokemon. El adaptador del motor se carga a demanda: un servidor que nunca hospeda un
 // combate Pokemon no paga el costo de cargar pokemon-showdown.
 export const POKEMON_MODES={pokemon:'collection',pokemonrandom:'random'};
+// Unica lista de modos de sala: la usan create() y el health del servidor, para que no se separen.
+export const ROOM_MODES=Object.freeze(['party','fakeout','sequence','aim','odd',...Object.keys(POKEMON_MODES)]);
 let battleModule=null;
 const loadBattles=async()=>battleModule??=await import('./pokemon-battle-service.mjs');
 
@@ -20,7 +22,7 @@ export function createRoomService({now=()=>performance.now(),seed=()=>randomByte
  function credentials(r,p){return {code:r.code,token:p.token,state:packet(r,p)};}
  function resolve(token){const found=tokens.get(token);if(!found||!rooms.has(found.r.code))fail('Sesión vencida. Volvé a entrar.',401);return found;}
  function create({name,mode,character}){
-  if(!['party','fakeout','sequence','aim','odd',...Object.keys(POKEMON_MODES)].includes(mode))fail('Modo no habilitado online todavía.');if(rooms.size>=64)fail('Servidor lleno. Intentá más tarde.',503);
+  if(!ROOM_MODES.includes(mode))fail('Modo no habilitado online todavía.');if(rooms.size>=64)fail('Servidor lleno. Intentá más tarde.',503);
   let code;do{code=randomBytes(4).toString('hex').toUpperCase();}while(rooms.has(code));
   const p=newPlayer(name,character),r={code,party:mode==='party',mode:mode==='party'?null:mode,players:[p],phase:mode==='party'?'lobby':'waiting',matchId:randomUUID(),engine:null,startsAt:0,result:null,timing:null,receipts:new Map(),revision:0,updatedAt:now(),first:0,session:new Map([[p.id,{points:0,games:0,wins:0}]])};rooms.set(code,r);tokens.set(p.token,{r,p});return credentials(r,p);
  }

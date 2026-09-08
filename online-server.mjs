@@ -2,7 +2,7 @@ import http from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {WebSocket,WebSocketServer} from 'ws';
-import {createRoomService} from './room-service.js';
+import {createRoomService,ROOM_MODES} from './room-service.js';
 import {createPokemonRanking,rankingStoreFromEnv} from './pokemon-ranking.mjs';
 
 export async function startOnlineServer({port=8787,host='127.0.0.1',allowedOrigins=[],serviceOptions={}}={}){
@@ -28,7 +28,7 @@ export async function startOnlineServer({port=8787,host='127.0.0.1',allowedOrigi
   try{
    if(req.method==='GET'&&['/','/UPI-Party-3D.html'].includes(path)){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});res.end(gameHTML);return;}
    if(req.method==='GET'&&path==='/network-client.js'){res.writeHead(200,{'Content-Type':'text/javascript; charset=utf-8'});res.end(networkClient);return;}
-   if(req.method==='GET'&&path==='/health'){json(res,200,{ok:true,protocol:2,transports:['http','websocket'],modes:['party','fakeout','sequence','aim','odd']});return;}
+   if(req.method==='GET'&&path==='/health'){json(res,200,{ok:true,protocol:2,transports:['http','websocket'],modes:ROOM_MODES});return;}
    if(!rate('ip:'+req.socket.remoteAddress,300,10000)){json(res,429,{error:'Demasiadas peticiones. Esperá unos segundos.'});return;}
    if(req.method==='POST'&&['/api/create','/api/join'].includes(path)){
     if(!rate('entry:'+req.socket.remoteAddress,25,60000)){json(res,429,{error:'Demasiados intentos de sala.'});return;}
