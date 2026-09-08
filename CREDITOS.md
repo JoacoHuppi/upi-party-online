@@ -69,3 +69,12 @@ Los modelos CC0 permiten modificación y uso comercial. Se conservan los origina
 - Adaptación/optimización: el modelo `characterMedium.fbx` y los clips `idle`, `run` y `jump` son byte por byte los mismos que en Animated Characters Protagonists (SHA-256 comprobado). Se reutiliza el rig ya embebido y solo se agregan las dos texturas. Las variantes zombie no se incorporaron.
 
 Motor: Three.js 0.180.0 (MIT), texto en `../THREE-LICENSE.txt`.
+
+## Minijuego Pokémon — motor de combate
+
+- Motor: Pokemon Showdown 0.11.11, licencia MIT. Copyright (c) 2011-2026 Guangcong Luo y otros colaboradores — http://pokemonshowdown.com/
+- Código fuente: https://github.com/smogon/pokemon-showdown
+- Texto completo de la licencia conservado en `../SHOWDOWN-LICENSE.txt`.
+- Uso: el simulador corre **solo en el servidor**. Del motor se toman las reglas de combate, la generación de equipos de Random Battle y el catálogo de especies (nombres, números, tipos, estadísticas base, habilidades y etiquetas). El archivo `pokemon-data.js` se genera con `gen-pokemon-data.mjs` a partir de ese catálogo; no se copiaron datos a mano.
+- No se incorpora arte, sprites ni audio de Pokémon: la interfaz de combate es propia y solo muestra texto.
+- Pokémon y los nombres de las especies son marcas de Nintendo, Creatures Inc. y GAME FREAK Inc. Este proyecto no está afiliado ni respaldado por ellos. La licencia MIT cubre el código del simulador, no las marcas.

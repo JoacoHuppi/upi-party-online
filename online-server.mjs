@@ -3,11 +3,14 @@ import {readFile} from 'node:fs/promises';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {WebSocket,WebSocketServer} from 'ws';
 import {createRoomService} from './room-service.js';
+import {createPokemonRanking,rankingStoreFromEnv} from './pokemon-ranking.mjs';
 
 export async function startOnlineServer({port=8787,host='127.0.0.1',allowedOrigins=[],serviceOptions={}}={}){
  const gameHTML=await readFile(new URL('./UPI-Party-3D.html',import.meta.url));
  const networkClient=await readFile(new URL('./network-client.js',import.meta.url));
- const service=createRoomService(serviceOptions),receivedNow=typeof serviceOptions.now==='function'?serviceOptions.now:()=>performance.now(),limits=new Map(),streams=new Set(),sockets=new Set();
+ // Sin variables de ranking configuradas cuenta en memoria: el servidor arranca igual.
+ const ranking=serviceOptions.ranking??createPokemonRanking({store:rankingStoreFromEnv(),onError:error=>console.error('[ranking]',error.message)});
+ const service=createRoomService({...serviceOptions,ranking}),receivedNow=typeof serviceOptions.now==='function'?serviceOptions.now:()=>performance.now(),limits=new Map(),streams=new Set(),sockets=new Set();
  const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8'});res.end(JSON.stringify(data));};
  function rate(key,max,windowMs){const t=Date.now(),entry=limits.get(key);if(!entry||t-entry.at>windowMs){limits.set(key,{at:t,n:1});return true;}return ++entry.n<=max;}
  async function body(req){let size=0,parts=[];for await(const part of req){size+=part.length;if(size>4096)throw Object.assign(new Error('Petición demasiado grande.'),{status:413});parts.push(part);}try{return JSON.parse(Buffer.concat(parts).toString('utf8'));}catch{throw Object.assign(new Error('JSON inválido.'),{status:400});}}

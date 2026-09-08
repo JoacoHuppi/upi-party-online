@@ -10,6 +10,7 @@
   },
   "engines": { "node": "24.x" },
   "dependencies": {
+    "pokemon-showdown": "0.11.11",
     "ws": "^8.18.3"
   }
 }
