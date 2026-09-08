@@ -1,6 +1,6 @@
 import {randomBytes,randomUUID} from 'node:crypto';
 import {createSequenceDuel,createFakeoutDuel} from './duel-rules.js';
-import {ONLINE_PORTALS,onlinePortalAt,validPose} from './party-rules.js';
+import {ONLINE_PORTALS,onlinePortalAt,validPose,normalizeYaw} from './party-rules.js';
 import {createSharedDuel} from './shared-duel.js';
 import {findItem} from './cosmetics-data.js';
 
@@ -76,7 +76,7 @@ export function createRoomService({now=()=>performance.now(),seed=()=>randomByte
    p.practice=msg.cell;p.pose={x:msg.cell==='racket'?-10:msg.cell==='arrows'?10:0,y:0,z:msg.cell?-16:2.1,yaw:0};publish(r);return {accepted:true,state:packet(r,p)};
   }
   if(msg.type==='move'&&p.practice)return {accepted:false,state:packet(r,p)};
-  if(msg.type==='move'){if(!r.party||!['lobby','countdown'].includes(r.phase)||!validPose(msg.cell))return {accepted:false,state:packet(r,p)};if(typeof msg.epoch==='string'&&msg.epoch.length<=80&&msg.epoch!==p.moveEpoch){p.moveEpoch=msg.epoch;p.poseSeq=-1;}if(Number.isSafeInteger(msg.seq)&&msg.seq<=p.poseSeq)return {accepted:false,stale:true,state:packet(r,p)};if(receivedAt-p.poseAt<33)return {accepted:false,state:packet(r,p)};p.pose={x:msg.cell.x,y:msg.cell.y,z:msg.cell.z,yaw:msg.cell.yaw};p.poseAt=receivedAt;p.poseSeq=Number.isSafeInteger(msg.seq)?msg.seq:p.poseSeq+1;gate(r);publish(r);return {accepted:true,state:packet(r,p)};}
+  if(msg.type==='move'){if(!r.party||!['lobby','countdown'].includes(r.phase)||!validPose(msg.cell))return {accepted:false,state:packet(r,p)};if(typeof msg.epoch==='string'&&msg.epoch.length<=80&&msg.epoch!==p.moveEpoch){p.moveEpoch=msg.epoch;p.poseSeq=-1;}if(Number.isSafeInteger(msg.seq)&&msg.seq<=p.poseSeq)return {accepted:false,stale:true,state:packet(r,p)};if(receivedAt-p.poseAt<33)return {accepted:false,state:packet(r,p)};p.pose={x:msg.cell.x,y:msg.cell.y,z:msg.cell.z,yaw:normalizeYaw(msg.cell.yaw)};p.poseAt=receivedAt;p.poseSeq=Number.isSafeInteger(msg.seq)?msg.seq:p.poseSeq+1;gate(r);publish(r);return {accepted:true,state:packet(r,p)};}
   if(msg.type==='lobby'){if(!r.party||r.phase!=='result')return {accepted:false,state:packet(r,p)};removeSoloBot(r);r.phase='lobby';r.mode=null;r.engine=null;r.result=null;r.timing=null;r.receipts.clear();r.matchId=randomUUID();r.players.forEach((x,i)=>{x.ready=false;x.pose={x:i*1.2,y:0,z:2.1,yaw:0};x.poseSeq++;x.actions.clear();});publish(r);return {accepted:true,state:packet(r,p)};}
   if(msg.type==='ready'){
    if(r.party)fail('Entren ambos al mismo portal.',409);

@@ -10,7 +10,11 @@ export const ONLINE_PORTALS=Object.freeze(PARTY_PORTALS.filter(portal=>portal.on
 export function portalAt(position){if(!position||Math.abs(position.y)>.3)return null;return PARTY_PORTALS.find(p=>Math.hypot(position.x-p.x,position.z-p.z)<1.3)?.id??null;}
 export function onlinePortalAt(position){if(!position||Math.abs(position.y)>.3)return null;return ONLINE_PORTALS.find(p=>Math.hypot(position.x-p.x,position.z-p.z)<1.3)?.id??null;}
 export const portalsFor=mode=>PARTY_PORTALS.filter(p=>mode==='online'?p.online!==false||p.soloOnline:p.offline!==false);
-export function validPose(p){return p&&['x','y','z','yaw'].every(k=>Number.isFinite(p[k]))&&Math.hypot(p.x,p.z)<=50&&p.y>=-8&&p.y<=12&&Math.abs(p.yaw)<=Math.PI*4;}
+// El giro del jugador se acumula frame a frame y crece sin limite: a las dos vueltas para el mismo
+// lado superaba el viejo tope de 4*PI y el servidor rechazaba TODAS las poses, dejando al jugador
+// congelado para su rival. Ahora se normaliza a (-PI, PI], que es la misma direccion.
+export const normalizeYaw=yaw=>Number.isFinite(yaw)?Math.atan2(Math.sin(yaw),Math.cos(yaw)):0;
+export function validPose(p){return Boolean(p)&&['x','y','z','yaw'].every(k=>Number.isFinite(p[k]))&&Math.hypot(p.x,p.z)<=50&&p.y>=-8&&p.y<=12;}
 function parkourRoute(sign,route){
  const points=[
   [-28.9,3,.45,1.55],[-30.9,4.35,.85,1.22],[-33,2.9,1.2,1.38],[-35.1,4.45,1.55,1.22],

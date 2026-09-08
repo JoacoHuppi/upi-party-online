@@ -78,3 +78,10 @@ Motor: Three.js 0.180.0 (MIT), texto en `../THREE-LICENSE.txt`.
 - Uso: el simulador corre **solo en el servidor**. Del motor se toman las reglas de combate, la generación de equipos de Random Battle y el catálogo de especies (nombres, números, tipos, estadísticas base, habilidades y etiquetas). El archivo `pokemon-data.js` se genera con `gen-pokemon-data.mjs` a partir de ese catálogo; no se copiaron datos a mano.
 - No se incorpora arte, sprites ni audio de Pokémon: la interfaz de combate es propia y solo muestra texto.
 - Pokémon y los nombres de las especies son marcas de Nintendo, Creatures Inc. y GAME FREAK Inc. Este proyecto no está afiliado ni respaldado por ellos. La licencia MIT cubre el código del simulador, no las marcas.
+
+### Imágenes de los Pokémon
+
+- Las imágenes se cargan en vivo desde `play.pokemonshowdown.com/sprites` (animadas `ani`/`ani-back`, estáticas `gen5`). **No se copia ninguna imagen a este repositorio ni al instalador.**
+- Los nombres de archivo salen del campo `spriteid` del propio motor, no de adivinar.
+- Ese arte es de Nintendo, Creatures Inc. y GAME FREAK Inc., alojado por un tercero. La licencia MIT del simulador cubre su código, **no** el arte ni las marcas. Este proyecto no está afiliado ni respaldado por ellos, y es de uso personal.
+- Si no hay conexión (o si Showdown deja de servirlas), la interfaz cae automáticamente a un emblema propio dibujado con los colores de los tipos, el número de Pokédex y las iniciales. Nunca queda una imagen rota.
